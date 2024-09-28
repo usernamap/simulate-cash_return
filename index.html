@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulateur de Rendu de Monnaie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f0f4f8; font-family: 'Inter', sans-serif; }
+        .hidden { display: none; }
+        .money-button {
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+        }
+        .rendered-money {
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            margin: 5px;
+            cursor: pointer;
+        }
+        /* Classes pour les pièces et billets */
+        .coin {
+            width: 70px;
+            height: 70px;
+        }
+        .bill {
+            width: 90px;
+            height: 50px;
+        }
+        /* Classes pour les billets donnés par le client */
+        .client-money {
+            width: 250px;
+            height: 100px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            margin: 2px;
+        }
+
+        h2, span, p {
+            text-align: center;
+        }
+
+
+        #client-message {
+            min-height: 40px;
+        }
+        #feedback {
+            min-height: 40px;
+        }
+        #rendered-coins {
+            min-height: 80px;
+        }
+        #client-money-container {
+            min-height: 110px;
+        }
+
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen">
+    <!-- Menu Principal -->
+    <div id="main-menu" class="p-6 bg-white shadow-lg rounded-lg max-w-2xl w-full text-center">
+        <h1 class="text-4xl font-bold text-gray-800 mb-6">Simulateur de Rendu de Monnaie</h1>
+        <p class="text-xl text-gray-700 mb-6">Sélectionnez un mode de jeu :</p>
+        <div class="mb-6">
+            <button class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 m-2" onclick="startGame('simple')">Mode Simple</button>
+            <button class="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 m-2" onclick="startGame('medium')">Mode Moyen</button>
+            <button class="bg-red-600 text-white px-6 py-3 rounded hover:bg-red-700 m-2" onclick="startGame('hard')">Mode Difficile</button>
+            <button class="bg-purple-600 text-white px-6 py-3 rounded hover:bg-purple-700 m-2" onclick="startGame('competitive')">Mode Compétitif</button>
+        </div>
+        <p class="text-gray-600">🎵 Musique de fond</p>
+    </div>
+
+    <!-- Jeu -->
+    <div id="game-container" class="p-6 bg-white shadow-lg rounded-lg max-w-2xl w-full hidden">
+        <div class="flex justify-between items-center">
+            <h2 id="game-mode-title" class="text-2xl font-bold text-gray-800 mb-6"></h2>
+            <div id="timer" class="text-right text-gray-600">
+                <span id="timer-label">⏳ Temps :</span> <span id="time-display">0</span>s
+            </div>
+        </div>
+        <p id="client-message" class="text-lg text-gray-700 mb-4 italic"></p>
+        <p id="transaction-info" class="text-xl text-gray-700 mb-6 text-center"></p>
+        <!-- Affichage des billets donnés par le client en mode simple -->
+        <div id="client-money-container" class="flex flex-wrap justify-center items-center mb-6 hidden">
+            <!-- Billets donnés par le client -->
+        </div>
+        <div class="mb-6">
+            <h2 class="text-gray-800 font-semibold mb-2">Sélectionnez les billets/pièces pour rendre la monnaie :</h2>
+            <div id="money-options" class="flex flex-wrap justify-center">
+                <!-- Boutons pour les différentes pièces/billets -->
+            </div>
+        </div>
+        <div class="mb-6">
+            <p class="font-semibold text-lg">Somme rendue : <span id="total-rendered">0</span>€</p>
+            <div id="rendered-coins" class="flex flex-wrap mt-3 justify-center items-center">
+                <!-- Affichage des pièces/billets sélectionnés -->
+            </div>
+        </div>
+        <!-- Bouton Valider centré -->
+        <div class="flex flex-col items-center mb-6">
+            <button id="validate-button" class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 mb-4">Valider</button>
+            <p id="feedback" class="text-xl font-semibold text-center"></p>
+        </div>
+        
+
+        <div>
+            <h2 class="text-gray-800 font-semibold text-lg">🏆 Score : <span id="score">0</span></h2>
+            <h3 class="text-gray-700 font-semibold mt-4">Historique des scores :</h3>
+            <ul id="scoreboard" class="list-disc list-inside text-gray-600">
+                <!-- Liste des scores précédents -->
+            </ul>
+        </div>
+        <button class="mt-6 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onclick="returnToMenu()">⏮ Retour au menu</button>
+    </div>
+
+    <!-- Résumé Final -->
+    <div id="summary-container" class="p-6 bg-white shadow-lg rounded-lg max-w-2xl w-full hidden text-center">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Résumé du Jeu</h2>
+        <p class="text-xl text-gray-700 mb-4">Vous avez terminé les 10 transactions !</p>
+        <p class="text-lg text-gray-700 mb-2">Score final : <span id="final-score"></span>/10</p>
+        <p class="text-lg text-gray-700 mb-6">Temps total : <span id="total-time"></span>s</p>
+        <button class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 m-2" onclick="returnToMenu()">⏮ Retour au menu</button>
+    </div>
+
+    <!-- Bruit de fond pour simuler les distractions -->
+    <audio id="background-music" loop>
+        <source src="./assets/musics/background/background-music.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Bruitage pour les actions -->
+    <!-- Les sons seront chargés dynamiquement -->
+    <script>
+        // Dénominations disponibles (inclus les centimes)
+        const denominations = [50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
+        const denominationImages = {
+            50: './assets/cash/50euro.png',
+            20: './assets/cash/20euro.png',
+            10: './assets/cash/10euro.png',
+            5: './assets/cash/5euro.png',
+            2: './assets/coin/2euro.png',
+            1: './assets/coin/1euro.png',
+            0.5: './assets/coin/50cent.png',
+            0.2: './assets/coin/20cent.png',
+            0.1: './assets/coin/10cent.png',
+            0.05: './assets/coin/5cent.png',
+            0.02: './assets/coin/2cent.png',
+            0.01: './assets/coin/1cent.png'
+        };
+
+        let totalDue = 0;
+        let amountGiven = 0;
+        let totalRendered = 0;
+        let renderedCoins = [];
+        let score = 0;
+        let timeElapsed = 0;
+        let timeRemaining = 0;
+        let timerInterval;
+        let perTransactionTimer;
+        let scoreboard = [];
+        let gameMode = 'simple';
+        let roundsPlayed = 0;
+        const maxRounds = 10;
+
+        // Sons
+        const clickSound = new Audio('./assets/musics/click.mp3');
+        const backgroundMusic = document.getElementById('background-music');
+
+        const successSounds = ['./assets/musics/sucess/success1.mp3', './assets/musics/sucess/success2.mp3', './assets/musics/sucess/success3.mp3'];
+        const errorSounds = ['./assets/musics/errors/error1.mp3', './assets/musics/errors/error2.mp3', './assets/musics/errors/error3.mp3'];
+
+        function playRandomSuccessSound() {
+            const sound = successSounds[Math.floor(Math.random() * successSounds.length)];
+            const audio = new Audio(sound);
+            audio.play();
+        }
+
+        function playErrorSound(errorType) {
+            let sound;
+            if (errorType === 'notEnough') {
+                sound = './assets/musics/errors/error_not_enough.mp3';
+            } else if (errorType === 'tooMuch') {
+                sound = './assets/musics/errors/error_too_much.mp3';
+            } else {
+                sound = errorSounds[Math.floor(Math.random() * errorSounds.length)];
+            }
+            const audio = new Audio(sound);
+            audio.play();
+        }
+
+        function startGame(mode) {
+            gameMode = mode;
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-container').classList.remove('hidden');
+            document.getElementById('game-mode-title').innerText = `Mode ${capitalizeFirstLetter(mode)}`;
+            resetGame();
+            renderMoneyOptions();
+            generateTransaction();
+            startElapsedTime();
+            backgroundMusic.volume = 0.1;
+            backgroundMusic.play();
+        }
+
+        function returnToMenu() {
+            clearInterval(timerInterval);
+            clearInterval(perTransactionTimer);
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+            document.getElementById('game-container').classList.add('hidden');
+            document.getElementById('summary-container').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+        }
+
+        function startElapsedTime() {
+            timerInterval = setInterval(() => {
+                timeElapsed++;
+                if (gameMode === 'simple' || gameMode === 'medium') {
+                    document.getElementById('time-display').innerText = timeElapsed;
+                }
+            }, 1000);
+        }
+
+        function startPerTransactionTimer() {
+            perTransactionTimer = setInterval(() => {
+                timeRemaining--;
+                document.getElementById('time-display').innerText = timeRemaining;
+                if (timeRemaining <= 0) {
+                    clearInterval(perTransactionTimer);
+                    document.getElementById('feedback').innerText = '⏰ Temps écoulé !';
+                    document.getElementById('feedback').className = 'text-red-600';
+                    document.getElementById('validate-button').disabled = true;
+                    playErrorSound();
+                    roundsPlayed++;
+                    scoreboard.push(`Transaction ${roundsPlayed} : Temps écoulé`);
+                    updateScoreboard();
+                    setTimeout(() => {
+                        if (roundsPlayed >= maxRounds && (gameMode === 'medium' || gameMode === 'hard')) {
+                            endGameMode();
+                        } else {
+                            resetForNextRound();
+                        }
+                    }, 1000);
+                }
+            }, 1000);
+        }
+
+        function resetGame() {
+            score = 0;
+            timeElapsed = 0;
+            roundsPlayed = 0;
+            document.getElementById('score').innerText = score;
+            document.getElementById('time-display').innerText = timeElapsed;
+            if (gameMode === 'simple' || gameMode === 'medium') {
+                document.getElementById('timer-label').innerText = '⏳ Temps écoulé :';
+            } else {
+                document.getElementById('timer-label').innerText = '⏳ Temps restant :';
+            }
+            scoreboard = [];
+            updateScoreboard();
+        }
+
+        function generateTransaction() {
+            if ((gameMode === 'medium' || gameMode === 'hard') && roundsPlayed >= maxRounds) {
+                endGameMode();
+                return;
+            }
+
+            let maxAmount = 60; // Maximum amount is 60 for all modes
+
+            // Générer un montant dû aléatoire
+            totalDue = (Math.random() * maxAmount).toFixed(2);
+
+            // Générer la somme donnée par le client en fonction des probabilités
+            amountGiven = generateAmountGiven(parseFloat(totalDue));
+
+            // Assurer que le montant donné est toujours supérieur ou égal au montant dû
+            if (parseFloat(amountGiven) < parseFloat(totalDue)) {
+                amountGiven = totalDue;
+            }
+
+            document.getElementById('transaction-info').innerText = `💰 Montant à payer : ${totalDue}€ | 💵 Somme donnée : ${amountGiven}€`;
+            totalRendered = 0;
+            renderedCoins = [];
+            document.getElementById('total-rendered').innerText = totalRendered.toFixed(2);
+            document.getElementById('rendered-coins').innerHTML = '';
+            document.getElementById('feedback').innerText = '';
+            document.getElementById('validate-button').disabled = false;
+            clearInterval(perTransactionTimer);
+
+            // Afficher le message du client
+            displayClientMessage();
+
+            // Afficher les billets donnés par le client en mode simple
+            if (gameMode === 'simple') {
+                displayClientMoney();
+            } else {
+                document.getElementById('client-money-container').classList.add('hidden');
+            }
+
+            if (gameMode === 'hard') {
+                timeRemaining = 30; // Time limit per transaction in hard mode
+                document.getElementById('time-display').innerText = timeRemaining;
+                startPerTransactionTimer();
+            } else if (gameMode === 'competitive') {
+                timeRemaining = 60; // Time limit per transaction in competitive mode
+                document.getElementById('time-display').innerText = timeRemaining;
+                startPerTransactionTimer();
+            } else {
+                // For 'simple' and 'medium' modes, display total time elapsed
+                document.getElementById('time-display').innerText = timeElapsed;
+            }
+        }
+
+        function generateAmountGiven(totalDue) {
+            let amountGiven = 0;
+            let clientPayment = [];
+            const bills = [50, 20, 10, 5];
+
+            if (gameMode === 'simple') {
+                // Décider si le client paie le montant exact ou arrondi
+                let rand = Math.random();
+                if (rand < 0.8) { // 80% de chance de payer un montant arrondi
+                    // Arrondir au multiple de 5€ supérieur
+                    amountGiven = Math.ceil(totalDue / 5) * 5;
+                } else {
+                    // Payer le montant exact
+                    amountGiven = totalDue;
+                }
+
+                // Éviter de donner un billet de 50€ pour un montant dû inférieur à 30€
+                let availableBills = bills.slice();
+                if (totalDue < 30) {
+                    availableBills = availableBills.filter(bill => bill !== 50);
+                }
+
+                // Générer les billets pour constituer le montant donné
+                let remaining = amountGiven;
+                for (let bill of availableBills) {
+                    while (remaining >= bill) {
+                        clientPayment.push(bill);
+                        remaining -= bill;
+                    }
+                }
+
+                // Rarement ajouter des pièces en euros
+                if (remaining > 0 && Math.random() < 0.1) {
+                    const coins = [2, 1];
+                    for (let coin of coins) {
+                        while (remaining >= coin) {
+                            clientPayment.push(coin);
+                            remaining -= coin;
+                        }
+                    }
+                }
+
+                // Si le montant donné est toujours inférieur au montant dû, ajouter un billet supplémentaire
+                if (remaining > 0) {
+                    clientPayment.push(availableBills[availableBills.length - 1]);
+                }
+
+                // Recalculer le montant donné
+                amountGiven = clientPayment.reduce((sum, val) => sum + val, 0).toFixed(2);
+
+                // Stocker le paiement du client pour afficher un message approprié
+                lastClientPayment = clientPayment;
+                return amountGiven;
+            } else {
+                // Autres modes (comme précédemment)
+                // [Insérez ici le code pour les autres modes si nécessaire]
+            }
+        }
+
+        let lastClientPayment = [];
+
+        function displayClientMessage() {
+            let message = '';
+            let wantsToReduceCoins = lastClientPayment.some(denomination => denomination < 1);
+            if (wantsToReduceCoins) {
+                message = "Le client vous dit : \"Je vous donne quelques pièces pour me débarrasser.\"";
+            } else {
+                message = "Le client vous tend l'argent sans rien dire.";
+            }
+            document.getElementById('client-message').innerText = message;
+        }
+
+        function displayClientMoney() {
+            const clientMoneyContainer = document.getElementById('client-money-container');
+            clientMoneyContainer.innerHTML = '';
+            lastClientPayment.forEach(denomination => {
+                const moneyDiv = document.createElement('div');
+                moneyDiv.className = 'client-money';
+                moneyDiv.style.backgroundImage = `url('${denominationImages[denomination]}')`;
+                clientMoneyContainer.appendChild(moneyDiv);
+            });
+            clientMoneyContainer.classList.remove('hidden');
+        }
+
+        function renderMoneyOptions() {
+            const moneyOptions = document.getElementById('money-options');
+            moneyOptions.innerHTML = '';
+            denominations.forEach(denomination => {
+                const button = document.createElement('button');
+
+                // Ajouter les classes appropriées
+                button.className = 'money-button';
+                if (denomination >= 5) {
+                    button.classList.add('bill');
+                } else {
+                    button.classList.add('coin');
+                }
+
+                // Définir l'image de fond en fonction de la dénomination
+                button.style.backgroundImage = `url('${denominationImages[denomination]}')`;
+
+                button.addEventListener('click', () => {
+                    totalRendered += denomination;
+                    totalRendered = parseFloat(totalRendered.toFixed(2)); // Éviter les problèmes d'arrondi
+                    renderedCoins.push(denomination);
+                    updateRenderedCoins();
+                    document.getElementById('total-rendered').innerText = totalRendered.toFixed(2);
+                    clickSound.play();
+                });
+                moneyOptions.appendChild(button);
+            });
+        }
+
+        function updateRenderedCoins() {
+            const renderedCoinsDiv = document.getElementById('rendered-coins');
+            renderedCoinsDiv.innerHTML = '';
+            renderedCoins.forEach((coin, index) => {
+                const coinDiv = document.createElement('div');
+
+                // Ajouter les classes appropriées
+                coinDiv.className = 'rendered-money';
+                if (coin >= 5) {
+                    coinDiv.classList.add('bill');
+                } else {
+                    coinDiv.classList.add('coin');
+                }
+
+                coinDiv.style.backgroundImage = `url('${denominationImages[coin]}')`;
+
+                coinDiv.addEventListener('click', () => {
+                    totalRendered -= coin;
+                    totalRendered = parseFloat(totalRendered.toFixed(2)); // Éviter les problèmes d'arrondi
+                    renderedCoins.splice(index, 1);
+                    updateRenderedCoins();
+                    document.getElementById('total-rendered').innerText = totalRendered.toFixed(2);
+                    clickSound.play();
+                });
+                renderedCoinsDiv.appendChild(coinDiv);
+            });
+        }
+
+        function validateTransaction() {
+            clearInterval(perTransactionTimer);
+            const changeToGive = (amountGiven - totalDue).toFixed(2);
+            const renderedChange = parseFloat(totalRendered).toFixed(2);
+            let feedbackMessage = '';
+            let errorType = '';
+
+            if (renderedChange === changeToGive) {
+                document.getElementById('feedback').innerText = '😊 Client : "Merci beaucoup, bonne journée !" : ' + changeToGive + '€';
+                document.getElementById('feedback').className = 'text-green-600';
+                playRandomSuccessSound();
+                score++;
+            } else {
+                if (renderedChange < changeToGive) {
+                    feedbackMessage = '😠 Client : "Il manque de la monnaie..." : ' + (changeToGive - renderedChange).toFixed(2) + '€';
+                    errorType = 'notEnough';
+                } else {
+                    feedbackMessage = '😠 Client : "Vous m\'avez rendu trop de monnaie !" : ' + (renderedChange - changeToGive).toFixed(2) + '€';
+                    errorType = 'tooMuch';
+                }
+                document.getElementById('feedback').innerText = feedbackMessage;
+                document.getElementById('feedback').className = 'text-red-600';
+                playErrorSound(errorType);
+            }
+
+            document.getElementById('score').innerText = score;
+            roundsPlayed++;
+            scoreboard.push(`Transaction ${roundsPlayed} : ${document.getElementById('feedback').innerText}`);
+            updateScoreboard();
+
+            setTimeout(() => {
+                if ((gameMode === 'medium' || gameMode === 'hard') && roundsPlayed >= maxRounds) {
+                    endGameMode();
+                } else if (gameMode === 'competitive' && document.getElementById('feedback').className.includes('text-red-600')) {
+                    endGameMode();
+                } else {
+                    resetForNextRound();
+                }
+            }, 2000);
+        }
+
+        function resetForNextRound() {
+            clearInterval(perTransactionTimer);
+            generateTransaction();
+        }
+
+        function endGameMode() {
+            clearInterval(timerInterval);
+            clearInterval(perTransactionTimer);
+            document.getElementById('game-container').classList.add('hidden');
+            document.getElementById('summary-container').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('total-time').innerText = timeElapsed;
+            backgroundMusic.pause();
+        }
+
+        function updateScoreboard() {
+            const scoreboardUl = document.getElementById('scoreboard');
+            scoreboardUl.innerHTML = '';
+            scoreboard.slice(-5).reverse().forEach(item => {
+                const li = document.createElement('li');
+                li.innerText = item;
+                scoreboardUl.appendChild(li);
+            });
+        }
+
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        document.getElementById('validate-button').addEventListener('click', validateTransaction);
+    </script>
+</body>
+</html>
